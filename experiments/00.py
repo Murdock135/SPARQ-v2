@@ -1,5 +1,14 @@
+"""
+0th experiment.
+
+Usage:
+uv run experiments/00.py : Run SPARQ on all questions
+uv run experiments/00.py k : Run SPARQ on first k questions
+"""
+
 import asyncio
 from pathlib import Path
+import sys
 
 from sparq.system import Agentic_system
 from sparq.settings import Settings
@@ -11,7 +20,7 @@ if PROJECT_ROOT is None:
 
 CONFIG_PATH = PROJECT_ROOT / "config.toml"
 
-questions = [
+QUESTIONS = [
     # "What is the most common food vehicle associated with salmonella outbreaks?",
     # "Which county in AZ had the highest food insecurity rate in 2022?",
     "What factors might contribute to the variation in outbreak sizes across different food vehicles?",
@@ -28,6 +37,16 @@ questions = [
 ]
 
 def main():
+    if len(sys.argv) > 1:
+        try:
+            k = int(sys.argv[1])
+            questions = QUESTIONS[:k]
+        except ValueError:
+            print(f"Invalid argument {sys.argv[1]}, expected an integer.")
+            return
+    else:
+        questions = QUESTIONS
+
     settings = Settings(
         config_path=CONFIG_PATH
     )

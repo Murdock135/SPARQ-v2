@@ -20,3 +20,10 @@ To verify your AWS credentials and ensure that you are logged in correctly, you 
 ```bash
 aws sts get-caller-identity --profile <aws_profile>
 ```
+
+# Bedrock
+
+To list all available foundation models in AWS Bedrock, you can run the following command:
+```bash
+aws bedrock list-foundation-models --query 'modelSummaries[].{Model:modelId,Provider:providerName}' --output table --profile sensd
+```
