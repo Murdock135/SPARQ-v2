@@ -55,7 +55,6 @@ def executor_node(state: State, **kwargs):
     output_dir = kwargs['output_dir']
 
     data_manifest = state['data_manifest']
-    df_summaries = state['df_summaries']
 
     _tools = [
         load_dataset,
@@ -67,7 +66,6 @@ def executor_node(state: State, **kwargs):
 
     system_prompt_template: BasePromptTemplate = PromptTemplate.from_template(prompt).partial(
         data_manifest=str(data_manifest),
-        df_summaries=str(df_summaries),
         output_dir=str(output_dir)
     )
     system_prompt_str: str = system_prompt_template.invoke(input={}).to_string()
@@ -85,7 +83,7 @@ def executor_node(state: State, **kwargs):
         context = _build_context(results)
         user_content = f"{context}\n\nYour current task:\n{step_description}" if context else step_description
         agent_input = {"messages": [{"role": "user", "content": user_content}]}
-        response = agent.invoke(agent_input)
+        response = agent.invoke(agent_input, config={"recursion_limit": 10})
         structured_response = response["structured_response"]
 
         outer_dict_key = f"Step {step_index}: {step_description}"
@@ -117,9 +115,8 @@ def test_executor(plan: Plan):
     
     manifest_path = settings.DATA_MANIFEST_PATH
     manifest = helpers.load_data_manifest(manifest_path)
-    df_summaries = helpers.get_df_summaries_from_manifest(manifest)
 
-    state = {'plan': plan, 'data_manifest': manifest,'df_summaries': df_summaries}
+    state = {'plan': plan, 'data_manifest': manifest}
     response = executor_node(state=state, prompt=prompt, output_dir=output_dir, llm=llm)
     
     for step, result in response['executor_results'].items():

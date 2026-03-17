@@ -32,14 +32,9 @@ def planner_node(state: State, **kwargs):
     manifest: dict = helpers.load_data_manifest(manifest_path)
     manifest_str = str(manifest)
     
-    # load df summaries
-    df_summaries = helpers.get_df_summaries_from_manifest(manifest)
-    df_summaries_str = str(df_summaries)
-
     # create system prompt
     system_prompt_template: BasePromptTemplate = PromptTemplate.from_template(sys_prompt).partial(
         data_manifest=manifest_str,
-        df_summaries=df_summaries_str
     )
     _system_prompt: str = system_prompt_template.invoke(input={}).to_string()
     system_prompt: SystemMessage = SystemMessage(content=_system_prompt)
@@ -62,7 +57,7 @@ def planner_node(state: State, **kwargs):
     plan = response["structured_response"]
     
     print("Created plan")
-    return {'plan': plan, 'data_manifest': manifest, 'df_summaries': df_summaries}
+    return {'plan': plan, 'data_manifest': manifest}
 
 def test_planner():
     from sparq.settings import Settings

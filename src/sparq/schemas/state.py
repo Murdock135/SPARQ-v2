@@ -9,7 +9,6 @@ class State(TypedDict):
     
     # data-specific
     data_manifest: dict
-    df_summaries: dict
     
     # executor-specific
     executor_results: dict
