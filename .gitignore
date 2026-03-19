@@ -13,7 +13,7 @@ ENV/
 .ipynb_checkpoints/
 
 # Data files
-data/
+data/**
 selected_data/
 *.csv
 *.tsv
@@ -21,6 +21,10 @@ selected_data/
 *.h5
 *.pkl
 *.xlsx
+
+# Track data summaries
+!data/
+!data/data_summaries*
 
 # Model files
 models/
