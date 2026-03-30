@@ -1,5 +1,5 @@
 
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 from sparq.utils import helpers
 from sparq.system import Agentic_system
 import argparse

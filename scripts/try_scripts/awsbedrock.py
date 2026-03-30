@@ -1,7 +1,7 @@
 import boto3
 import os
 
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 
 settings = Settings()
 settings._load_env_variables()

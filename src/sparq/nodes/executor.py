@@ -1,6 +1,6 @@
 from sparq.schemas.state import State
 from sparq.schemas.output_schemas import Plan, ExecutorOutput
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 from sparq.utils import helpers
 from sparq.utils.get_llm import get_llm
 from sparq.tools.python_repl.python_repl_tool import python_repl_tool

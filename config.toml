@@ -3,6 +3,7 @@ test_query = "What are the main factors contributing to salmonella rates in Miss
 [paths]
 OUTPUT_DIR = "~/tmp/sparq/output"
 DATA_MANIFEST_PATH = "~/.config/sparq/data/manifest.json"
+DATA_SUMMARIES_PATH = "~/.config/sparq/data/summaries.json"
 PROMPTS_DIR = "prompts"
 
 [llm_config]

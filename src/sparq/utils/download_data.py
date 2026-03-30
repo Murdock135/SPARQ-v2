@@ -6,7 +6,7 @@ from huggingface_hub import snapshot_download
 from sparq.utils.helpers import dump_dict_to_json
 import os
 
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 
 REPO_ID = "zayanhugsAI"
 datasets = [

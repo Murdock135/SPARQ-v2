@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 from langchain_aws import ChatBedrock
 
 from sparq.utils.get_llm import get_llm
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 
 
 class TestGetLLM(unittest.TestCase):

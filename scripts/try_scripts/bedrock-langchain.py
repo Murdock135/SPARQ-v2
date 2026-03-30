@@ -3,7 +3,7 @@ import boto3
 
 import os
 
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 
 MODEL_ID = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
 

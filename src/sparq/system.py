@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Optional
 
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 from sparq.nodes.planner import planner_node
 from sparq.nodes.executor import executor_node
 from sparq.nodes.router import router_func, router_node

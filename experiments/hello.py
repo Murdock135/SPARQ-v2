@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 
 from sparq.system import Agentic_system
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 from sparq.utils.get_package_dir import get_project_root
 
 PROJECT_ROOT = get_project_root()

@@ -1,6 +1,6 @@
 from sparq.schemas.state import State
 from sparq.schemas.output_schemas import Plan
-from sparq.settings import Settings
+from sparq.settings_old import Settings
 from sparq.utils import helpers
 
 from langgraph.prebuilt import create_react_agent
@@ -60,7 +60,7 @@ def planner_node(state: State, **kwargs):
     return {'plan': plan, 'data_manifest': manifest}
 
 def test_planner():
-    from sparq.settings import Settings
+    from sparq.settings_old import Settings
     print("Running test code for planner.py")
     
     s = Settings()
