@@ -48,10 +48,9 @@ DEV_CONFIG_PATH: Path = get_project_root() / "config.toml"
 USER_CONFIG_PATH: Path = get_user_config_dir() / "config.toml"
 
 # -----------------------------------------------------------------------
-# DATA MANIFEST AND SUMMARY PATHS
+# Data Manifest and Summaries
 # -----------------------------------------------------------------------
-# TODO: Move data into package data directory
-BUNDLED_DATA_DIR: Path = get_package_dir() / "data"         # Data will be copied from here to user data dir if not present
+BUNDLED_DATA_DIR: Path = get_package_dir() / "data"         # On first install, Data will be copied from here to user data dir if not present
 USER_DATA_DIR: Path = get_user_config_dir() / "data"
 
 DATA_MANIFEST_PATH: Path = USER_DATA_DIR / "data_manifest.json"
@@ -108,12 +107,10 @@ class LLMSettings(BaseModel):
 class PathSettings(BaseModel):
     prompts_dir: Path
     output_dir: Path
-    data_manifest_path: Path
-    data_summary_path: Path
-
+    output_stem: Optional[str] = None
 
 class AgenticSystemSettings(BaseSettings):
-    test_query: str  # In Inner config file
+    test_query: str  # In Inner config file. Devs and Users aren't expected.
     llm_config: LLMSettings
     paths: PathSettings
 
