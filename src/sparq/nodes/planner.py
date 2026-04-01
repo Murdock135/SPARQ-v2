@@ -1,7 +1,13 @@
 from sparq.schemas.state import State
 from sparq.schemas.output_schemas import Plan
-from sparq.settings_old import Settings
+# from sparq.settings_old import Settings
+from sparq.settings import (
+    AgenticSystemSettings,
+    ENVSettings,
+    DATA_MANIFEST_PATH,
+)
 from sparq.utils import helpers
+from sparq.utils.get_llm import get_llm
 
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import SystemMessage
@@ -25,10 +31,9 @@ def planner_node(state: State, **kwargs):
     
     sys_prompt = kwargs['sys_prompt']
     llm = kwargs['llm']
-    settings: Settings = kwargs['settings']
     
     # load manifest
-    manifest_path = settings.DATA_MANIFEST_PATH    
+    manifest_path = DATA_MANIFEST_PATH 
     manifest: dict = helpers.load_data_manifest(manifest_path)
     manifest_str = str(manifest)
     
@@ -60,18 +65,22 @@ def planner_node(state: State, **kwargs):
     return {'plan': plan, 'data_manifest': manifest}
 
 def test_planner():
-    from sparq.settings_old import Settings
+    # from sparq.settings_old import Settings
     print("Running test code for planner.py")
     
-    s = Settings()
-    llm_config = s.LLM_CONFIG
-    llm = helpers.get_llm(model=llm_config['planner']['model'], provider=llm_config['planner']['provider'])
+    # s = Settings()
+    # llm_config = s.LLM_CONFIG
+    # llm = helpers.get_llm(model=llm_config['planner']['model'], provider=llm_config['planner']['provider'])
+
+    _ = ENVSettings()  # Load environment variables
+    llm_config = AgenticSystemSettings().llm_config
+    llm = get_llm(model=llm_config.planner.model_name, provider=llm_config.planner.provider)
     system_prompt = "Create a plan to answer the user query"
     user_query = "What is the relation between time of day and traffic in Kuala Lumpur, Malaysia?"
     input = {"query": user_query}
     
-    response = planner_node(state=input, sys_prompt=system_prompt, llm=llm, settings=s)
-    print(response['plan'].pretty_print())
+    response = planner_node(state=input, sys_prompt=system_prompt, llm=llm)
+    response['plan'].pretty_print()
     
 if __name__ == "__main__":
     test_planner()

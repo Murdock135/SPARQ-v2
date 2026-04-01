@@ -8,8 +8,9 @@ This module implements app configuration. Specifically, it provides the followin
 """
 
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Any, Optional, Literal
 import platform
+import os
 
 from pydantic import BaseModel, Field
 from pydantic_settings import (
@@ -83,6 +84,13 @@ class ENVSettings(BaseSettings):
     # Optional AWS settings
     aws_profile: Optional[str] = None
     aws_region: Optional[str] = None
+
+    # 
+    def model_post_init(self, _) -> None:
+        # Load environment variables immediately after initialization
+        for key, val in self.model_dump().items():
+            if val is not None:
+                os.environ[key.upper()] = val
 
 
 # -----------------------------------------------------------------------
