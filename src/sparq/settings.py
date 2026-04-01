@@ -107,7 +107,7 @@ class LLMSettings(BaseModel):
 class PathSettings(BaseModel):
     prompts_dir: Path
     output_dir: Path
-    output_stem: Optional[str] = None
+    output_stem: Optional[str] = Field(None, alias="output_stem", description="Stem for output files, e.g., setting to 'output' would give 'output_<timestamp>.json'")
 
 class AgenticSystemSettings(BaseSettings):
     test_query: str  # In Inner config file. Devs and Users aren't expected.

@@ -1,7 +1,9 @@
 from functools import partial
-from typing import Optional
 
-from sparq.settings_old import Settings
+from pathlib import Path
+
+# from sparq.settings_old import Settings
+from sparq.settings import AgenticSystemSettings
 from sparq.nodes.planner import planner_node
 from sparq.nodes.executor import executor_node
 from sparq.nodes.router import router_func, router_node
@@ -9,6 +11,8 @@ from sparq.nodes.aggregator import aggregator_node
 from sparq.nodes.saver import saver_node
 from sparq.schemas.state import State
 from sparq.utils.get_llm import get_llm
+from sparq.utils.get_package_dir import get_package_dir
+from sparq.utils.helpers import load_text
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import RetryPolicy
@@ -16,31 +20,50 @@ import pydantic_core
 from rich import print
 
 class Agentic_system:
-    def __init__(self, settings: Optional[Settings] = None):
-        self.settings = settings or Settings() # Use default settings if none provided
-        self.llm_config = self.settings.LLM_CONFIG
+    def __init__(self):
+        self.settings = AgenticSystemSettings()         # Ignore 'missing parameters' warning.
+
+        # Get LLMs
+        self.llm_config = self.settings.llm_config
         self.llms = self._get_llms()
-        self.prompts = self.settings.load_prompts()
+
+        # Get system prompts
+        self.prompts_dir = self.settings.paths.prompts_dir
+        self.system_prompts = self._load_prompts(self.prompts_dir)
+        # self.prompts = self.settings.load_prompts()
+
+    def _load_prompts(self, prompts_dir: Path) -> dict:
+
+        # WHY do we need is_absolute() check?
+        if not prompts_dir.is_absolute():
+            prompts_dir = get_package_dir() / prompts_dir
+        return {
+            'router_prompt':     load_text(prompts_dir / "router_message.txt"),
+            'planner_prompt':    load_text(prompts_dir / "planner_message.txt"),
+            'executor_prompt':   load_text(prompts_dir / "executor_message.txt"),
+            'aggregator_prompt': load_text(prompts_dir / "aggregator_message.txt"),
+        }
 
     def _get_llms(self):
-        router_config = self.llm_config['router']
-        planner_config = self.llm_config['planner']
-        executor_config = self.llm_config['executor']
-        aggregator_config = self.llm_config['aggregator']
+        router_config = self.llm_config.router
+        planner_config = self.llm_config.planner
+        executor_config = self.llm_config.executor
+        aggregator_config = self.llm_config.aggregator
 
         return {
-            'router_llm': get_llm(model=router_config['model'], provider=router_config['provider']),
-            'planner_llm': get_llm(model=planner_config['model'], provider=planner_config['provider']),
-            'executor_llm': get_llm(model=executor_config['model'], provider=executor_config['provider']),
-            'aggregator_llm': get_llm(model=aggregator_config['model'], provider=aggregator_config['provider'])
+            'router_llm':     get_llm(model=router_config.model_name,     provider=router_config.provider),
+            'planner_llm':    get_llm(model=planner_config.model_name,    provider=planner_config.provider),
+            'executor_llm':   get_llm(model=executor_config.model_name,   provider=executor_config.provider),
+            'aggregator_llm': get_llm(model=aggregator_config.model_name, provider=aggregator_config.provider),
         }
     
     def _get_node_definitions(self):
-        self.router_node_partial = partial(router_node, llm=self.llms['router_llm'], prompt=self.prompts['router_prompt'])
-        self.planner_node_partial = partial(planner_node, llm=self.llms['planner_llm'], sys_prompt=self.prompts['planner_prompt'], settings=self.settings)
-        self.executor_node_partial = partial(executor_node, llm=self.llms['executor_llm'], prompt=self.prompts['executor_prompt'], output_dir=self.settings.EXECUTOR_OUTPUT_DIR)
-        self.aggregator_node_partial = partial(aggregator_node, llm=self.llms['aggregator_llm'], prompt=self.prompts['aggregator_prompt'])
-        self.saver_node_partial = partial(saver_node, save_dir=self.settings.OUTPUT_DIR)
+        output_dir = Path(self.settings.paths.output_dir).expanduser()
+        self.router_node_partial = partial(router_node, llm=self.llms['router_llm'], prompt=self.system_prompts['router_prompt'])
+        self.planner_node_partial = partial(planner_node, llm=self.llms['planner_llm'], sys_prompt=self.system_prompts['planner_prompt'])
+        self.executor_node_partial = partial(executor_node, llm=self.llms['executor_llm'], prompt=self.system_prompts['executor_prompt'], output_dir=output_dir / "executor")
+        self.aggregator_node_partial = partial(aggregator_node, llm=self.llms['aggregator_llm'], prompt=self.system_prompts['aggregator_prompt'])
+        self.saver_node_partial = partial(saver_node, save_dir=output_dir)
     
     def _build_graph(self):
         graph_init = StateGraph(state_schema=State)

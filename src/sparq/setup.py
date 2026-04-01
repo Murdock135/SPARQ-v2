@@ -14,6 +14,8 @@ import shutil
 
 from sparq.settings import (
     BUNDLED_DATA_DIR,
+    INNER_CONFIG_PATH,
+    USER_CONFIG_PATH,
     USER_DATA_DIR,
     USER_DOTFILE_PATH,
     DATA_SUMMARIES_PATH,
@@ -30,12 +32,16 @@ def setup():
     get_user_config_dir().mkdir(parents=True, exist_ok=True)
     USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 2. Copy .env.example to user config dir if no .env exists
+    # 2. Copy default config to user config dir if not already present
+    if not USER_CONFIG_PATH.exists():
+        shutil.copy2(INNER_CONFIG_PATH, USER_CONFIG_PATH)
+
+    # 4. Copy .env.example to user config dir if no .env exists
     if not USER_DOTFILE_PATH.exists():
         shutil.copy2(BUNDLED_DATA_DIR.parent / ".env.example", USER_DOTFILE_PATH)
         print(f"Template .env created at {USER_DOTFILE_PATH} — please fill in your API keys.")
 
-    # 3. Copy bundled data summaries to user data dir if not already present
+    # 5. Copy bundled data summaries to user data dir if not already present
     for src, dst in [
         (BUNDLED_DATA_DIR / "data_summaries.json",       DATA_SUMMARIES_PATH),
         (BUNDLED_DATA_DIR / "data_summaries_full.json",  DATA_SUMMARIES_FULL_PATH),
@@ -44,12 +50,12 @@ def setup():
         if src.exists() and not dst.exists():
             shutil.copy2(src, dst)
 
-    # 4. Download datasets from HuggingFace
+    # 6. Download datasets from HuggingFace
     from sparq.utils.download_data import main as download_data
     try:
         download_data()
     except ValueError as e:
         print(f"Warning: Data download skipped — {e}")
 
-    # 5. Write sentinel to mark setup as complete
+    # 7. Write sentinel to mark setup as complete
     SENTINEL.write_text("")
