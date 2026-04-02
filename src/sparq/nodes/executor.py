@@ -1,6 +1,5 @@
 from sparq.schemas.state import State
 from sparq.schemas.output_schemas import Plan, ExecutorOutput
-from sparq.settings_old import Settings
 from sparq.utils import helpers
 from sparq.utils.get_llm import get_llm
 from sparq.tools.python_repl.python_repl_tool import python_repl_tool
@@ -107,17 +106,33 @@ def executor_node(state: State, **kwargs):
 
 def test_executor(plan: Plan):
     print(f"Testing executor node with sample plan: \n {plan.pretty_print()}")
+
+    from sparq.settings import (
+        ENVSettings,
+        AgenticSystemSettings,
+        PathSettings,
+        DATA_MANIFEST_PATH
+    )
     
-    settings = Settings()
-    llm = get_llm(model='o3-mini')
-    prompt = helpers.load_text(settings.EXECUTOR_PROMPT_PATH)
-    output_dir = settings.EXECUTOR_OUTPUT_DIR
+    # Load environment and system settings
+    env_settings = ENVSettings()
+    system_settings = AgenticSystemSettings()
+
+    # Get LLM
+    llm_config = system_settings.llm_config.executor
+    llm = get_llm(model=llm_config.model_name, provider=llm_config.provider)
+
+    # Get system prompt
+    prompt = helpers.load_text(system_settings.paths.prompts_dir / "executor_message.txt")
+    updated_paths = PathSettings.model_validate(
+        system_settings.paths.model_dump() | {"output_stem": "test_executor"}
+    )
+    run_dir = updated_paths.run_dir
     
-    manifest_path = settings.DATA_MANIFEST_PATH
-    manifest = helpers.load_data_manifest(manifest_path)
+    manifest = helpers.load_data_manifest(DATA_MANIFEST_PATH)
 
     state = {'plan': plan, 'data_manifest': manifest}
-    response = executor_node(state=state, prompt=prompt, output_dir=output_dir, llm=llm)
+    response = executor_node(state=state, prompt=prompt, output_dir=run_dir, llm=llm)
     
     for step, result in response['executor_results'].items():
         print(step)

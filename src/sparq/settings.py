@@ -8,13 +8,16 @@ This module implements app configuration. Specifically, it provides the followin
 """
 
 from pathlib import Path
-from typing import Any, Optional, Literal
+from typing import Annotated, Any, Optional, Literal, Self
 import platform
 import os
 
-from pydantic import BaseModel, Field
+from datetime import datetime
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
+    NoDecode,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
     TomlConfigSettingsSource,
@@ -79,18 +82,23 @@ class ENVSettings(BaseSettings):
     google_api_key: Optional[str] = None
     gemini_api_key: Optional[str] = None
     langsmith_api_key: Optional[str] = None
+    langsmith_tracing: Optional[bool] = None
+    langsmith_project: Optional[str] = None
     hf_token: Optional[str] = None
 
     # Optional AWS settings
     aws_profile: Optional[str] = None
     aws_region: Optional[str] = None
 
-    # 
+    def __init__(self, verbose: bool = False, **data):
+        super().__init__(**data)
+        if verbose:
+            print(self.model_dump_json(indent=2))
+
     def model_post_init(self, _) -> None:
-        # Load environment variables immediately after initialization
         for key, val in self.model_dump().items():
             if val is not None:
-                os.environ[key.upper()] = val
+                os.environ[key.upper()] = str(val)
 
 
 # -----------------------------------------------------------------------
@@ -113,9 +121,27 @@ class LLMSettings(BaseModel):
 
 
 class PathSettings(BaseModel):
-    prompts_dir: Path
-    output_dir: Path
+    prompts_dir: Annotated[Path, NoDecode]
+    output_dir: Annotated[Path, NoDecode]
     output_stem: Optional[str] = Field(None, alias="output_stem", description="Stem for output files, e.g., setting to 'output' would give 'output_<timestamp>.json'")
+    run_dir: Optional[Path] = None
+
+    @field_validator("prompts_dir", "output_dir", mode="before")
+    @classmethod
+    def resolve_path(cls, v: str) -> Path:
+        p = Path(v).expanduser()
+        if not p.is_absolute():
+            pkg_dir = get_package_dir()
+            assert pkg_dir is not None, "Could not locate package directory"
+            p = pkg_dir / p
+        return p
+
+    @model_validator(mode="after")
+    def set_run_dir(self) -> Self:
+        timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+        stem = f"{self.output_stem}_" if self.output_stem else ""
+        self.run_dir = self.output_dir / f"{stem}{timestamp}"
+        return self
 
 class AgenticSystemSettings(BaseSettings):
     test_query: str  # In Inner config file. Devs and Users aren't expected.
@@ -125,6 +151,11 @@ class AgenticSystemSettings(BaseSettings):
     model_config = SettingsConfigDict(
         toml_file=[INNER_CONFIG_PATH, DEV_CONFIG_PATH, USER_CONFIG_PATH]
     )
+
+    def __init__(self, verbose: bool = False, **data):
+        super().__init__(**data)
+        if verbose:
+            print(self.model_dump_json(indent=2))
 
     @classmethod
     def settings_customise_sources(

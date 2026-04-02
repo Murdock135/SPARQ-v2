@@ -27,3 +27,4 @@
 - `__main__.py`: update `get_user_query` call — pass `test_query: str` directly instead of full config dict
 - `helpers.py`: update `get_user_query` signature to accept `test_query: str`
 - `experiments/00.py`, `experiments/hello.py`, `tests/test_get_llm.py`, `scripts/try_scripts/*.py`: replace `settings_old` imports
+- Incorporate a agent recursion limit in llm settings.

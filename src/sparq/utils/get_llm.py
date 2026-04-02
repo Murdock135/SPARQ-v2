@@ -24,7 +24,7 @@ def _make_openrouter(model: str, provider: str):
     )
 
 def _make_bedrock(model: str, provider: str):
-    from langchain_aws import ChatBedrock
+    from langchain_aws import ChatBedrockConverse
     import boto3
 
     # Kept for interface consistency with other factories.
@@ -44,7 +44,7 @@ def _make_bedrock(model: str, provider: str):
     try:
         session = boto3.Session(profile_name=profile, region_name=region)
         client = session.client(service_name="bedrock-runtime")
-        return ChatBedrock(model=model, client=client)
+        return ChatBedrockConverse(model=model, client=client)
     except Exception as exc:
         raise ValueError(
             f"Failed to initialize Bedrock model '{model}' "

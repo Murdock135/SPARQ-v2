@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from sparq.settings import ENVSettings, AgenticSystemSettings
 
@@ -37,6 +38,20 @@ class TestAgenticSystemSettings(unittest.TestCase):
     def test_paths_loaded(self):
         self.assertIsNotNone(self.settings.paths.prompts_dir)
         self.assertIsNotNone(self.settings.paths.output_dir)
+
+    def test_paths_are_path_objects(self):
+        self.assertIsInstance(self.settings.paths.prompts_dir, Path)
+        self.assertIsInstance(self.settings.paths.output_dir, Path)
+
+    def test_paths_are_absolute(self):
+        self.assertTrue(self.settings.paths.prompts_dir.is_absolute())
+        self.assertTrue(self.settings.paths.output_dir.is_absolute())
+
+    def test_run_dir(self):
+        run_dir = self.settings.paths.run_dir
+        self.assertIsInstance(run_dir, Path)
+        self.assertTrue(run_dir.is_absolute())
+        self.assertTrue(str(run_dir).startswith(str(self.settings.paths.output_dir)))
 
     def test_llm_config_loaded(self):
         # All four nodes should have an LLM config from the default TOML
