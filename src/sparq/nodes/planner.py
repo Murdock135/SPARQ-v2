@@ -1,10 +1,10 @@
 from sparq.schemas.state import State
 from sparq.schemas.output_schemas import Plan
-# from sparq.settings_old import Settings
 from sparq.settings import (
     AgenticSystemSettings,
     ENVSettings,
     DATA_MANIFEST_PATH,
+    LLMSetting,
 )
 from sparq.utils import helpers
 from sparq.utils.get_llm import get_llm
@@ -13,37 +13,28 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import BasePromptTemplate, PromptTemplate
 
-def planner_node(state: State, **kwargs):
+def planner_node(state: State, llm_config: LLMSetting, sys_prompt: str):
     """
-    Create a plan to answer the user query
-
-    Args:
-        state (State): The current state containing the user query.
-        **kwargs: Additional keyword arguments including:
-            - sys_prompt (str): The system prompt template for the planner.
-            - llm: The language model to use for planning.
-            - settings (Settings): The settings object containing configuration.
+    Create a plan to answer the user query.
 
     Returns:
-        dict: A dictionary containing the generated plan, data manifest, and dataframe summaries.
+        dict: A dictionary containing the generated plan and data manifest.
     """
     print("Making a plan to answer your query")
-    
-    sys_prompt = kwargs['sys_prompt']
-    llm = kwargs['llm']
-    
+
+    llm = get_llm(model=llm_config.model_name, provider=llm_config.provider)
+
     # load manifest
-    manifest_path = DATA_MANIFEST_PATH 
-    manifest: dict = helpers.load_data_manifest(manifest_path)
+    manifest: dict = helpers.load_data_manifest(DATA_MANIFEST_PATH)
     manifest_str = str(manifest)
-    
+
     # create system prompt
     system_prompt_template: BasePromptTemplate = PromptTemplate.from_template(sys_prompt).partial(
         data_manifest=manifest_str,
     )
     _system_prompt: str = system_prompt_template.invoke(input={}).to_string()
     system_prompt: SystemMessage = SystemMessage(content=_system_prompt)
-    
+
     # create the ReAct agent
     agent = create_react_agent(
         model=llm,
@@ -51,16 +42,16 @@ def planner_node(state: State, **kwargs):
         prompt=system_prompt,
         response_format=Plan
     )
-    
+
     # invoke agent and stream the response
     agent_input = {"messages": [{"role": "user", "content": state['query']}]}
     for chunks in agent.stream(agent_input, stream_mode="updates"):
         print(chunks)
-        
-    response = agent.invoke(agent_input)
-            
+
+    response = agent.invoke(agent_input, config={"recursion_limit": llm_config.recursion_limit})
+
     plan = response["structured_response"]
-    
+
     print("Created plan")
     return {'plan': plan, 'data_manifest': manifest}
 
@@ -74,12 +65,11 @@ def test_planner():
 
     _ = ENVSettings()  # Load environment variables
     llm_config = AgenticSystemSettings().llm_config
-    llm = get_llm(model=llm_config.planner.model_name, provider=llm_config.planner.provider)
     system_prompt = "Create a plan to answer the user query"
     user_query = "What is the relation between time of day and traffic in Kuala Lumpur, Malaysia?"
     input = {"query": user_query}
-    
-    response = planner_node(state=input, sys_prompt=system_prompt, llm=llm)
+
+    response = planner_node(state=input, llm_config=llm_config.planner, sys_prompt=system_prompt)
     response['plan'].pretty_print()
     
 if __name__ == "__main__":

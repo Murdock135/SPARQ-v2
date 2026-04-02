@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from sparq.schemas.state import State
 from sparq.schemas.output_schemas import Plan, ExecutorOutput
+from sparq.settings import LLMSetting
 from sparq.utils import helpers
 from sparq.utils.get_llm import get_llm
 from sparq.tools.python_repl.python_repl_tool import python_repl_tool
@@ -42,16 +45,14 @@ def _build_context(results: dict) -> str:
     return "\n".join(lines)
 
 
-def executor_node(state: State, **kwargs):
+def executor_node(state: State, llm_config: LLMSetting, prompt: str, output_dir: Path):
     """
     Execute the plan
     """
     print("Executing plan to answer your query.")
 
     plan: Plan = state['plan']
-    llm = kwargs['llm']
-    prompt = kwargs['prompt']
-    output_dir = kwargs['output_dir']
+    llm = get_llm(model=llm_config.model_name, provider=llm_config.provider)
 
     data_manifest = state['data_manifest']
 
@@ -82,7 +83,7 @@ def executor_node(state: State, **kwargs):
         context = _build_context(results)
         user_content = f"{context}\n\nYour current task:\n{step_description}" if context else step_description
         agent_input = {"messages": [{"role": "user", "content": user_content}]}
-        response = agent.invoke(agent_input, config={"recursion_limit": 10})
+        response = agent.invoke(agent_input, config={"recursion_limit": llm_config.recursion_limit})
         structured_response = response["structured_response"]
 
         outer_dict_key = f"Step {step_index}: {step_description}"
@@ -118,21 +119,17 @@ def test_executor(plan: Plan):
     env_settings = ENVSettings()
     system_settings = AgenticSystemSettings()
 
-    # Get LLM
-    llm_config = system_settings.llm_config.executor
-    llm = get_llm(model=llm_config.model_name, provider=llm_config.provider)
-
     # Get system prompt
     prompt = helpers.load_text(system_settings.paths.prompts_dir / "executor_message.txt")
     updated_paths = PathSettings.model_validate(
         system_settings.paths.model_dump() | {"output_stem": "test_executor"}
     )
     run_dir = updated_paths.run_dir
-    
+
     manifest = helpers.load_data_manifest(DATA_MANIFEST_PATH)
 
     state = {'plan': plan, 'data_manifest': manifest}
-    response = executor_node(state=state, prompt=prompt, output_dir=run_dir, llm=llm)
+    response = executor_node(state=state, llm_config=system_settings.llm_config.executor, prompt=prompt, output_dir=run_dir)
     
     for step, result in response['executor_results'].items():
         print(step)

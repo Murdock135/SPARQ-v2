@@ -68,6 +68,11 @@ DATA_SUMMARIES_SHORT_PATH: Path = USER_DATA_DIR / "data_summaries_short.json"
 DEV_DOTFILE_PATH: Path = get_project_root() / ".env"
 USER_DOTFILE_PATH: Path = get_user_config_dir() / ".env"
 
+# -----------------------------------------------------------------------
+# Other Defaults
+# -----------------------------------------------------------------------
+DEFAULT_RECURSION_LIMIT = 20  # Default maximum number of steps it takes to walk from graph root to terminal leaf
+
 
 # -----------------------------------------------------------------------
 # Environment settings
@@ -111,6 +116,7 @@ class LLMSetting(BaseModel):
     temperature: Optional[float] = None
     top_p: Optional[float] = None
     reasoning: Optional[Literal[1, 0]] = None
+    recursion_limit: int = Field(DEFAULT_RECURSION_LIMIT, ge=0, le=30, description="Maximum number of steps it takes to walk from graph root to terminal leaf")
 
 
 class LLMSettings(BaseModel):

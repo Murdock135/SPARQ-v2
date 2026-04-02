@@ -20,11 +20,5 @@
 
 # Pending (from settings refactor)
 
-- Move timestamped output dir creation out of `settings_old` — decide: `system.py` or `saver.py`
-- `planner.py`: remove `settings` kwarg, use `DATA_MANIFEST_PATH` global directly
-- `executor.py`: update `test_executor()` to use new settings
-- `system.py`: update `_get_llms()` for pydantic model (`.model_name` instead of `['model']`), inline `load_prompts()`, derive output dirs from `AgenticSystemSettings`
-- `__main__.py`: update `get_user_query` call — pass `test_query: str` directly instead of full config dict
-- `helpers.py`: update `get_user_query` signature to accept `test_query: str`
-- `experiments/00.py`, `experiments/hello.py`, `tests/test_get_llm.py`, `scripts/try_scripts/*.py`: replace `settings_old` imports
+- `experiments/00.py`, `experiments/hello.py`, `tests/test_get_llm.py`, `scripts/try_scripts/*.py`: replace `settings_old` imports.
 - Incorporate a agent recursion limit in llm settings.
