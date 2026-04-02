@@ -1,3 +1,4 @@
+import os
 import unittest
 from pathlib import Path
 
@@ -22,6 +23,10 @@ class TestENVSettings(unittest.TestCase):
 
     def test_no_unexpected_none_for_hf_token(self):
         self.assertIsNotNone(self.settings.hf_token, "HF_TOKEN should be set in .env")
+
+    def test_langsmith_tracing_pushed_to_environ(self):
+        self.assertEqual(os.environ.get("LANGSMITH_TRACING"), "true",
+            "LANGSMITH_TRACING must be lowercase 'true' in os.environ for LangSmith to enable tracing")
 
 
 class TestAgenticSystemSettings(unittest.TestCase):

@@ -144,15 +144,15 @@ if __name__ == "__main__":
     sample_plan = Plan(
         steps=[
             Step(
-                step_description="Determine which dataset(s) to use",
+                step_description="Get the pulsenet dataset and load it into a dataframe.",
                 datasets=[],
-                rationale="Not all datasets are relevant.",
+                rationale="The pulsenet dataset contains information about various pathogens, including their serotypes and sources of isolation. Loading it into a dataframe will allow us to analyze the data and find correlations.",
                 task_type=["data_mining"]
             ),
             Step(
-                step_description="Summarize the distribution of serotypes in the dataset.",
+                step_description="Find correlations between serotype and source of isolation in the dataset.",
                 datasets=[],
-                rationale="Understanding serotype distribution is crucial for epidemiological insights.",
+                rationale="Understanding correlations between serotype and source of isolation can provide insights into the epidemiology of the pathogens in the dataset.",
                 task_type=["summary_statistics", "visualization"]
             ),
         ],

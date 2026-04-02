@@ -82,7 +82,7 @@ class ENVSettings(BaseSettings):
     google_api_key: Optional[str] = None
     gemini_api_key: Optional[str] = None
     langsmith_api_key: Optional[str] = None
-    langsmith_tracing: Optional[bool] = None
+    langsmith_tracing: Optional[str] = None
     langsmith_project: Optional[str] = None
     hf_token: Optional[str] = None
 

@@ -6,7 +6,7 @@ import argparse
 import asyncio
 
 def main():
-    ENVSettings(verbose=True)
+    _ = ENVSettings(verbose=True)
     system_settings = AgenticSystemSettings(verbose=True)
 
     parser = argparse.ArgumentParser(description="Run the LangGraph application.")
