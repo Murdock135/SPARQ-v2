@@ -18,9 +18,9 @@ def _make_openrouter(model: str, provider: str):
         raise ValueError("OPENROUTER_BASE_URL not found")
 
     return ChatOpenAI(
-        openai_api_key=api_key,
-        openai_api_base=base_url,
-        model_name=model or "meta-llama/llama-4-maverick:free",
+        api_key=api_key,
+        base_url=base_url,
+        model=model or "meta-llama/llama-4-maverick:free",
     )
 
 def _make_bedrock(model: str, provider: str):
@@ -42,8 +42,16 @@ def _make_bedrock(model: str, provider: str):
         raise ValueError(f"Missing required environment variable(s): {', '.join(missing)}")
 
     try:
+        from botocore.config import Config as BotocoreConfig
         session = boto3.Session(profile_name=profile, region_name=region)
-        client = session.client(service_name="bedrock-runtime")
+        client = session.client(
+            service_name="bedrock-runtime",
+            config=BotocoreConfig(
+                connect_timeout=10,
+                read_timeout=300,
+                retries={"mode": "standard", "max_attempts": 3},  # exponential backoff on transient errors incl. ReadTimeoutError
+            ),  # https://docs.aws.amazon.com/botocore/latest/reference/config.html
+        )
         return ChatBedrockConverse(model=model, client=client)
     except Exception as exc:
         raise ValueError(

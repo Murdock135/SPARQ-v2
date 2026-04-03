@@ -1,15 +1,14 @@
 import unittest
 from unittest.mock import patch, Mock
-from langchain_aws import ChatBedrock
+from langchain_aws import ChatBedrockConverse
 
 from sparq.utils.get_llm import get_llm
-from sparq.settings_old import Settings
+from sparq.settings import ENVSettings
 
 
 class TestGetLLM(unittest.TestCase):
     def setUp(self) -> None:
-        s = Settings()
-        s._load_env_variables()
+        ENVSettings()  # loads env vars (AWS_PROFILE, AWS_REGION, etc.) into os.environ
 
     @patch('boto3.Session')
     def test_aws(self, mock_session):
@@ -17,5 +16,4 @@ class TestGetLLM(unittest.TestCase):
 
         model = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
         llm = get_llm(model=model, provider='aws_bedrock')
-        self.assertIsInstance(llm, ChatBedrock)
-
+        self.assertIsInstance(llm, ChatBedrockConverse)

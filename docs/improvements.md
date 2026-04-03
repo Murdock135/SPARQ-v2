@@ -8,6 +8,7 @@
 | Fix saver bypass on direct-answer path | Low | High (correctness) |
 | Fix executor mid-loop state mutation | Low | Medium (correctness) |
 | Scope REPL namespace to run ID | Low | High (concurrency safety) |
+| Plot interpretation via agent-controlled tool | Medium | High (output quality) |
 | Rolling context summarization in executor | Medium | High (context limit avoidance) |
 | Step dependency + parallel execution | Medium | High (throughput) |
 | State as Pydantic with reducers | Medium | Medium (robustness) |
@@ -134,7 +135,37 @@ graph_init.add_conditional_edges("executor", executor_health_check, {
 
 ---
 
-## 9. Aggregator output isn't structured
+## 9. Executor cannot interpret generated plots
+
+**File**: `src/sparq/nodes/executor.py`, `src/sparq/tools/`
+
+The executor produces plots and documents but has no way to read them back. `files_generated` is just a list of filename strings — the agent cannot inspect the actual content of images, so plots are opaque to subsequent steps.
+
+The executor already has `list_directory` from `FileManagementToolkit` (via `filesystemtools(selected_tools='all')`), so the agent can already discover what files exist in `output_dir`. What's missing is a single additional tool:
+
+**An `interpret_plot(file_path)` tool** — loads a saved image, encodes it, and passes it to a multimodal LLM, returning a text description. The agent calls this selectively on whichever files it judges relevant to the current step.
+
+```python
+@tool
+def interpret_plot(file_path: str) -> str:
+    """Interpret a plot image and return a text description of its findings."""
+    path = Path(file_path)
+    b64 = base64.b64encode(path.read_bytes()).decode()
+    content = [
+        {"type": "text", "text": "Describe the key findings in this plot."},
+        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}
+    ]
+    response = vision_llm.invoke([HumanMessage(content=content)])
+    return response.content
+```
+
+**Why tool-based rather than automatic post-processing:** Automatically interpreting every new plot after each step wastes tokens on diagnostic outputs the agent doesn't need. Giving the agent the tool lets it decide which files are worth interpreting for the current task.
+
+**Constraint:** The LLM backing `interpret_plot` must be multimodal. This should be a separate `vision_llm` config entry in `LLMSettings` rather than reusing the executor LLM, so switching the executor to a text-only model doesn't silently break plot interpretation.
+
+---
+
+## 10. Aggregator output isn't structured
 
 **File**: `src/sparq/nodes/aggregator.py`
 
