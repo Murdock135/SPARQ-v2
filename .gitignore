@@ -26,6 +26,13 @@ selected_data/
 !data/
 !data/data_summaries*
 
+# Track bundled data manifests in the package
+!src/sparq/data/
+!src/sparq/data/data_manifest.json
+!src/sparq/data/data_summaries.json
+!src/sparq/data/data_summaries_full.json
+!src/sparq/data/data_summaries_short.json
+
 # Model files
 models/
 *.h5

@@ -1,19 +1,32 @@
 
 [llm_config]
+
 [llm_config.router]
-model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+model = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
 provider = "aws_bedrock"
 
 [llm_config.planner]
 model = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
 provider = "aws_bedrock"
 
-[llm_config.executor]
+[llm_config.researcher]
 model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 provider = "aws_bedrock"
 recursion_limit = 200
 
-[llm_config.aggregator]
+[llm_config.critic]
 model = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
 provider = "aws_bedrock"
 
+[llm_config.synthesizer]
+model = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+provider = "aws_bedrock"
+
+[llm_config.vision]
+# Must be a multimodal model
+model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+provider = "aws_bedrock"
+
+[llm_config.judge]
+model = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+provider = "aws_bedrock"

@@ -6,6 +6,16 @@ import types
 _PERSISTENT_NS_PATH: str | None = None
 
 
+def set_persistent_ns_path(path: str) -> None:
+    """Override the persistent namespace path.
+
+    Call this at the start of each run with a run-specific path so that
+    concurrent runs don't share a namespace pickle file.
+    """
+    global _PERSISTENT_NS_PATH
+    _PERSISTENT_NS_PATH = path
+
+
 def get_persistent_ns_path() -> str:
     """Returns path to the persistent namespace pickle file, creating it (empty) if needed.
     

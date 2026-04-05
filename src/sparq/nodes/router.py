@@ -1,10 +1,9 @@
 from sparq.schemas.state import State
-from sparq.schemas.output_schemas import Router
+from sparq.schemas.output_schemas import RouterOutput
 from sparq.settings import LLMSetting
 from sparq.utils.get_llm import get_llm
 
-from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 
 def router_func(router_output):
     """
@@ -17,22 +16,12 @@ def router_node(state: State, llm_config: LLMSetting, prompt: str):
     Route the user query to the appropriate node based on the type of query
     """
     llm = get_llm(model=llm_config.model_name, provider=llm_config.provider)
-    agent = create_react_agent(
-        model=llm,
-        tools=[],
-        prompt=SystemMessage(content=prompt),
-        response_format=(prompt, Router) # follow issue https://github.com/langchain-ai/langgraph/discussions/3794#discussioncomment-12578403
-    )
-
-    # invoke agent and stream the response
-    agent_input = {"messages": [{"role": "user", "content": state['query']}]}
-    for chunks in agent.stream(agent_input, stream_mode="updates"):
-        print(chunks)
-
-    response = agent.invoke(agent_input, config={"recursion_limit": llm_config.recursion_limit})
-    output =  {
-        'route': response["structured_response"].route,
-        'answer': response["structured_response"].answer,
+    structured_llm = llm.with_structured_output(RouterOutput)
+    response: RouterOutput = structured_llm.invoke([
+        SystemMessage(content=prompt),
+        HumanMessage(content=state['query']),
+    ])
+    return {
+        'route': response.route,
+        'direct_answer': response.direct_answer,
     }
-
-    return output

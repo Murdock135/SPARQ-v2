@@ -1,154 +1,225 @@
-# Setup
+# SPARQ
 
-> **Recommendation**
-> I highly recommend using a UNIX based OS or VM (Linux, MacOS) to run this project. If you're on windows, install [WSL (Windows Subsystem for linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and run it in there.
+**Autonomous multi-agent data science for pathogeno-socio-economic analysis.**
 
-1. Clone this repo with git or download as a zip file and then extract it.
-2. In your terminal, 'cd' into the project folder.
-3. Install Python 3.13.3 if you haven't already.
+SPARQ answers research questions over curated epidemiology datasets (PulseNet, NORS, SVI, Map the Meal Gap, Census) using a LangGraph pipeline of specialized LLM agents. It produces structured scientific reports suitable for academic publication.
 
+---
 
-
-# Get access to the data
-Go to https://huggingface.co/zayanhugsAI, click on the relevant datasets and request access. The datasets used in this project are - 
-    
-1. Pulsenet
-2. National Outbreak Reporting System (NORS)
-3. Social Vulnerability Index (SVI)
-4. Map The Meal Gap
-5. Census Population
-
-# Usage
-
-> **Prerequisites**
-> - Ensure you have python 3.13.3 installed.
-> - Ensure a `config.toml` file exists in the `config` directory. See [Configuration](#configuration)
-> - Ensure that you have the API keys for every provider defined within `config.toml`. See [Setting API keys](#setting-api-keys)
-> - Ensure you have access to the [data](https://huggingface.co/zayanhugsAI).
-
-First download the data using the following command.
-
-Using uv: `uv run -m utils.download_data`
-
-Using Python: `python -m utils.download_data`
-
-Then, run the agentic system using a test query already defined (in `config/config.toml`)
-
-- Using uv: `uv run -m core.main -t`
-- Using Python: `python -m core.main -t`
-
-If you want to use your own query:
-
-- Using uv: `uv run -m core.main`
-- Using Python: `python -m core.main`
-
-## Inspecting outputs
-
-After each run, you can see output logs in the `output/` directory. Each run will be timestamped. For example, if you run the project on the date: 29/09/2025 (DD/MM/YYYY) at 11:01:01, it will be stamped as `output/output_29-09-2025_11-01-01`. This folder has the following components
+## Architecture
 
 ```
-output/output_29-09-2025_11-28-17
-├── aggregator 
-├── analyzer
-├── executor
-├── explorer
-├── final_answer.json # only the final answer
-├── planner
-└── trace.json # full trace
+router → planner → researcher → critic ─┬→ synthesizer → saver
+                       ↑                └→ researcher  (revision, max 2×)
+
+"knowledge" queries:   router → synthesizer → saver
+"out of scope":        router → saver
 ```
 
-You can also use Langsmith for looking at the trace (same information as inside the `output/`)If you have tracing enabled (see [enable tracing](#enable-tracing-optional)), you will see the trace of the system in your langsmith account.
+| Node | Role |
+|------|------|
+| **Router** | Classifies query: `analysis`, `knowledge`, or `out_of_scope` |
+| **Planner** | Produces a `ResearchAgenda` (formalized question, hypothesis, ordered steps) |
+| **Researcher** | ReAct agent that runs Python code, loads data, generates figures, interprets plots |
+| **Critic** | Peer-reviews the researcher's output; routes back for revision if needed |
+| **Synthesizer** | Produces a structured `Report` (abstract, methods, results, discussion, conclusion, limitations) |
+| **Saver** | Writes `trace.json`, `report.md`, `metadata.json`, and a best-effort `report.pdf` |
 
-## Alternative: How to use Docker to run the project
+---
 
-Open WSL or your linux/MacOS terminal and `cd` into the project  
+## Prerequisites
+
+- Python 3.13.3
+- [`uv`](https://docs.astral.sh/uv/) package manager
+- Access to the datasets on [HuggingFace (zayanhugsAI)](https://huggingface.co/zayanhugsAI)
+- API keys for your chosen LLM provider (see [Configuration](#configuration))
+
+> **Recommendation:** Use Linux or macOS. On Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+---
+
+## Setup
+
+**1. Clone the repo**
 
 ```bash
-chmod +x scripts/run.sh
+git clone <repo-url>
+cd SPARQ-v2
 ```
 
-Then run it with
+**2. Install dependencies**
 
 ```bash
-./scripts/run.sh
+uv sync
 ```
 
-## Enable tracing (Optional)
+**3. Configure environment**
 
-If you want to enable tracing using langsmith, create an account in [langsmith](https://www.langchain.com/langsmith), obtain an API key and do the following-
+Create a `.env` file in the project root:
 
-- Set the API key. See [Setting API keys](#setting-api-keys).
-- In your `.env` file within this directory, add the following,
+```ini
+# AWS Bedrock (authenticate via SSO before running)
+AWS_PROFILE=your_aws_profile_name
+AWS_REGION=us-east-1
+
+# LangSmith tracing (optional — get key at smith.langchain.com)
+LANGSMITH_API_KEY=your_langsmith_api_key
+LANGSMITH_TRACING=true
+LANGSMITH_PROJECT=SPARQ
+
+# HuggingFace token (needed to download datasets)
+HF_TOKEN=your_huggingface_token
+```
+
+Before each session, log in via SSO:
+
+```bash
+aws sso login --profile your_profile_name
+```
+
+**4. Download datasets**
+
+First request access on [HuggingFace](https://huggingface.co/zayanhugsAI), then:
+
+```bash
+uv run python -m sparq.utils.download_data
+```
+
+---
+
+## Usage
+
+**Run with the default test query:**
+
+```bash
+uv run sparq -t
+```
+
+**Run interactively (enter your own query):**
+
+```bash
+uv run sparq
+```
+
+**Run with Docker:**
+
+```bash
+./scripts/run_scripts/run_docker.sh
+```
+
+---
+
+## Output
+
+Each run writes to a timestamped directory under `~/tmp/sparq_v2/`:
 
 ```
-LANGSMITH_TRACING=True
-LANGSMITH_PROJECT=<your_project_name>
+~/tmp/sparq_v2/14-04-2026_11-28-17/
+├── report.md           ← structured scientific report (markdown)
+├── report.pdf          ← PDF rendering (requires pandoc)
+├── trace.json          ← full state snapshot for reproducibility
+├── metadata.json       ← run timings and LLM config used
+└── researcher/
+    ├── figure_1.png    ← figures generated during analysis
+    ├── figure_2.png
+    └── namespace.pkl   ← persisted Python REPL namespace
 ```
-I am using `SPARQ` as `<your_project_name>`
 
-# Configuration
+---
 
-2 things can be configured via the `config/config.toml` file: (1) The 'test query' and (2) The models used in the agentic system.
+## Configuration
 
-The default configuration is as follows.
-```
-test_query = "What are the main factors contributing to salmonella rates in Missouri in a statistical sense?"
+Override model and provider per node by creating `config/config.toml` (takes precedence over defaults):
 
-[router]
+```toml
+[llm_config.router]
 model = "gemini-2.0-flash"
 provider = "google_genai"
 
-[explorer]
+[llm_config.planner]
+model = "gemini-2.5-pro"
+provider = "google_genai"
+
+[llm_config.researcher]
+model = "claude-sonnet-4-5"
+provider = "aws_bedrock"
+recursion_limit = 100
+
+[llm_config.critic]
 model = "gemini-2.0-flash"
 provider = "google_genai"
 
-[analyzer]
-model = "gemini-2.0-flash"
+[llm_config.synthesizer]
+model = "gemini-2.5-pro"
 provider = "google_genai"
 
-[planner]
-model = "gemini-2.0-flash"
-provider = "google_genai"
-
-[executor]
-model = "gemini-2.0-flash"
-provider = "google_genai"
-
-[aggregator]
+[llm_config.vision]
+# Must be a multimodal model — used by the interpret_plot tool
 model = "gemini-2.0-flash"
 provider = "google_genai"
 ```
 
-If you want to use models from other providers, you will need to (1) Get the API keys from the respective providers and set them (See [Setting API keys](#setting-api-keys)) (2) Set the `model` and `provider` keys as per your preference in `config/config.toml`.
+Supported providers: `google_genai`, `openai`, `aws_bedrock`, `openrouter`.
 
-# Setting API keys
+---
 
-You will need an API key for every provider defined in `config/config.toml`. The default configuration
-only uses "google_genai" as the provider for all agents. So this particular configuration needs one API 
-key; from google.
+## Evaluation
 
-## Where to put your API keys?
+SPARQ includes an evaluation harness for the paper's ablation studies.
 
-I recommend putting your llm-provider-specific API keys in `~/.secrets/.llm_apis` (On windows this will be `C:\Users\username\.secrets\.llm_apis`). You could also simply create a `.env` file within the project directory and put the API keys in there.
+**Score a single run with LLM-as-judge:**
 
-Example:
-
-```
-GOOGLE_GENAI_API_KEY=<YOUR KEY HERE>
-OPENAI_API_KEY=<YOUR KEY HERE>
+```python
+from sparq.eval.judge import judge_report
+judgement = judge_report(question, report, llm_config)
+print(judgement.total, judgement.rationale)  # scores: relevance, completeness, validity, clarity
 ```
 
-> If you want to inspect the related code, `config/load_env.py` is responsible for looking for API keys
+**Batch evaluation over the full question dataset:**
 
+```bash
+uv run python -m sparq.eval.batch                    # all questions
+uv run python -m sparq.eval.batch --grade-min 3      # only questions graded 3+
+uv run python -m sparq.eval.batch --questions 0 3 7  # specific indices
+```
 
-# FAQ
+**Ablation study:**
 
-1. Does this download any models to my computer?
+```bash
+uv run python -m sparq.eval.ablation
+```
 
-    No
+Ablation configurations are defined in `src/sparq/eval/ablation.py`. Each config is a dict of setting overrides (e.g. disable critic, swap model, change provider). Results are written to `~/tmp/sparq_v2/eval/ablation/`.
 
-2. What is langgraph, langsmith?
+---
 
-    Langgraph is a python library for creating a system of multiple language models. Imagine each node of a graph as a language model (although that does not need to be the case, it is easy to imagine so). Langgraph has helpful code to build such a system.
+## Datasets
 
-    Langsmith is a platform where the 'trace' or step-by-step log of the system can be inspected. Here, you can observe what each language model is generating.
+| Dataset | Description |
+|---------|-------------|
+| **PulseNet** | CDC whole-genome sequencing isolate data for Salmonella and other pathogens |
+| **NORS** | National Outbreak Reporting System — foodborne illness outbreaks |
+| **SVI** | CDC Social Vulnerability Index — county-level socioeconomic indicators |
+| **Map the Meal Gap** | Feeding America food insecurity estimates by county |
+| **Census Population** | US Census population estimates |
+
+All datasets are downloaded from [HuggingFace (zayanhugsAI)](https://huggingface.co/zayanhugsAI) and cached locally.
+
+---
+
+## Development
+
+```bash
+# Run all tests
+uv run python -m unittest
+
+# Run a specific test module
+uv run python -m unittest tests.tools.test_executor
+
+# Run tests (via script)
+./scripts/run_scripts/run_tests.sh
+```
+
+See [CHANGES.md](CHANGES.md) for a full account of what changed between v1 and v2.
+See [docs/architecture.md](docs/architecture.md) for a detailed architecture reference.
+See [requirements.md](requirements.md) for the full system specification.

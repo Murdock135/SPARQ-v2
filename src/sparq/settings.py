@@ -122,6 +122,12 @@ class LLMSetting(BaseModel):
 class LLMSettings(BaseModel):
     router: Optional[LLMSetting] = None
     planner: Optional[LLMSetting] = None
+    researcher: Optional[LLMSetting] = None
+    critic: Optional[LLMSetting] = None
+    synthesizer: Optional[LLMSetting] = None
+    vision: Optional[LLMSetting] = None
+    judge: Optional[LLMSetting] = None  # used by eval harness
+    # Legacy aliases kept for config backwards-compatibility
     executor: Optional[LLMSetting] = None
     aggregator: Optional[LLMSetting] = None
 

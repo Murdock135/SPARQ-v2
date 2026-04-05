@@ -1,11 +1,12 @@
 test_query = "What are the main factors contributing to salmonella rates in Missouri in a statistical sense?"
 
 [paths]
-output_dir = "~/tmp/sparq/output"
-# output_stem = "" # Stem for output files, e.g., setting to 'output' would give "output_<timestamp>.json"
+output_dir = "~/tmp/sparq_v2"
+# output_stem = ""  # optional stem, e.g. "run" → "run_<timestamp>"
 prompts_dir = "prompts"
 
 [llm_config]
+
 [llm_config.router]
 model = "gemini-2.0-flash"
 provider = "google_genai"
@@ -14,11 +15,25 @@ provider = "google_genai"
 model = "gemini-2.0-flash"
 provider = "google_genai"
 
-[llm_config.executor]
+[llm_config.researcher]
+model = "gemini-2.0-flash"
+provider = "google_genai"
+recursion_limit = 100
+
+[llm_config.critic]
 model = "gemini-2.0-flash"
 provider = "google_genai"
 
-[llm_config.aggregator]
+[llm_config.synthesizer]
 model = "gemini-2.0-flash"
 provider = "google_genai"
 
+[llm_config.vision]
+# Must be a multimodal model.  Used by interpret_plot tool.
+model = "gemini-2.0-flash"
+provider = "google_genai"
+
+[llm_config.judge]
+# Used by eval harness (judge.py, batch.py, ablation.py).
+model = "gemini-2.0-flash"
+provider = "google_genai"
